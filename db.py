@@ -30,14 +30,15 @@ class Internship(db.Model):
     """
     Internship Model
 
-    Has a many-to-many relationship with the User Model
+    Has a one to-many relationship with the User Model
     {
         "internships":[
             {
                 "id": 1,
+                "user_id": <user_input>
                 "company name": "Google",
                 "time since application" : "3 weeks",
-                "application status": "technical interview round",
+                "application status": "applied,in progress, accepted/denied",
                 "contact information": [],
                 "tasks" : [],
                 "additional notes": OPTIONAL
