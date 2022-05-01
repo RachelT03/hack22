@@ -1,0 +1,6 @@
+venv
+__pycache__
+api_specs
+db_file.db
+README.md
+requirements.txt
