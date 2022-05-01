@@ -4,6 +4,7 @@ from db import Internship
 from db import Task
 from flask import Flask, request
 import json
+import datetime
 
 import os
 app = Flask(__name__)
@@ -98,10 +99,13 @@ def create_internship(user_id):
         return failure_response("please include necessary information to create internship", 400)
     company = body.get("company")
     status = body.get("status")
+    title = body.get("title")
+    description = body.get("description")
     new_internship = Internship(
         company = company, 
+        title = title,
+        description = description,
         application_status = status,
-        time_since_application = 2,
         user_id = user_id
         )
     user.internships.append(new_internship)
@@ -142,89 +146,93 @@ def edit_internship(user_id, internship_id):
         return failure_response("internship not found", 404)
     body = json.loads(request.data)
     status = body.get("status")
+    description = body.get("description")
     if status is not None:
         internship.application_status = status
+    if description is not None:
+        internship.description = description
     db.session.commit()
     return success_response(internship.serialize(), 201)
 
-# @app.route("/api/<int:user_id>/internship/<int:internship_id>/tasks/")
-# def get_tasks(user_id, internship_id):
-#     """
-#     Endpoint for getting all tasks for a user's internship
-#     """
-#     user = User.query.filter_by(id=user_id).first()
-#     if user is None:
-#         return failure_response("user not found", 404)
-#     internship = user.internship[internship_id]
-#     if internship is None:
-#         return failure_response("internship not found", 404)
-#     tasks = internship.task
-#     return success_response(tasks.serialize(), 201)
+@app.route("/api/<int:user_id>/internships/<int:internship_id>/tasks/")
+def get_tasks(user_id, internship_id):
+    """
+    Endpoint for getting all tasks for a user's internship
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found", 404)
+    internship = Internship.query.filter_by(id=internship_id).first()
+    if internship is None:
+        return failure_response("internship not found", 404)
+    tasks = [t.serialize() for t in internship.tasks]
+    return success_response(tasks, 201)
 
-# @app.route("/api/<int:user_id>/internship/<int:internship_id>/tasks/<int:task_id>/")
-# def get_tasks(user_id, internship_id, task_id):
-#     """
-#     Endpoint for getting a specific task for a user's internship
-#     """
-#     user = User.query.filter_by(id=user_id).first()
-#     if user is None:
-#         return failure_response("user not found", 404)
-#     internship = user.internship[internship_id]
-#     if internship is None:
-#         return failure_response("internship not found", 404)
-#     tasks = internship.task[task_id]
-#     if tasks is None:
-#         return failure_response("task not found", 404)
-#     return success_response(tasks.serialize(), 201)
+@app.route("/api/<int:user_id>/internship/<int:internship_id>/tasks/<int:task_id>/")
+def get_specific_task(user_id, internship_id, task_id):
+    """
+    Endpoint for getting a specific task for a user's internship
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found", 404)
+    internship = Internship.query.filter_by(id=internship_id).first()
+    if internship is None:
+        return failure_response("internship not found", 404)
+    task = Task.query.filter_by(id=task_id).first()
+    if task is None:
+        return failure_response("task not found", 404)
+    return success_response(task.serialize(), 201)
 
-# @app.route("/api/<int:user_id>/internship/<int:internship_id>/tasks/", methods = ["POST"])
-# def create_task(user_id, internship_id):
-#     """
-#     Endpoint for creating a task for a user's internship
-#     """
-#     user = User.query.filter_by(id=user_id).first()
-#     if user is None:
-#         return failure_response("user not found", 404)
-#     internship = user.internship[internship_id]
-#     if internship is None:
-#         return failure_response("internship not found", 404)
-#     body = json.loads(request.data)
-#     completed = body.get("completed")
-#     name = body.get("task name")
-#     new_task = Task(
-#         task_name = name,
-#         completed = completed,
-#         task_id=task_id
-#     )
-#     internship.task.append(new_task)
-#     db.session.add(new_task)
-#     db.session.commit()
-#     return success_response(new_task.serialize(), 201)
+@app.route("/api/<int:user_id>/internships/<int:internship_id>/tasks/", methods = ["POST"])
+def create_task(user_id, internship_id):
+    """
+    Endpoint for creating a task for a user's internship
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found", 404)
+    internship = Internship.query.filter_by(id=internship_id).first()
+    if internship is None:
+        return failure_response("internship not found", 404)
+    body = json.loads(request.data)
+    name = body.get("task name")
+    if name is None:
+        return failure_response("please include necessary information to create task", 400)
+    new_task = Task(
+        task_name = name,
+        completed = "False",
+        internship_id = internship_id
+    )
+    internship.tasks.append(new_task)
+    db.session.add(new_task)
+    db.session.commit()
+    return success_response(new_task.serialize(), 201)
 
 
-# @app.route("/api/<int:user_id>/internship/<int:internship_id>/tasks/<int:task_id>/", methods = ["POST"])
-# def edit_task(user_id, internship_id, task_id):
-#     """
-#     Endpoint for editing a task for a user's internship
-#     """
-#     user = User.query.filter_by(id=user_id).first()
-#     if user is None:
-#         return failure_response("user not found", 404)
-#     internship = user.internship[internship_id]
-#     if internship is None:
-#         return failure_response("internship not found", 404)
-#     tasks = internship.task[task_id]
-#     if tasks is None:
-#         return failure_response("task not found", 404)
-#     body = json.loads(request.data)
-#     completed = body.get("completed")
-#     name = body.get("task name")
-#     if completed is not None:
-#         task.completed = completed
-#     if name is not None:
-#         task.task_name = name
-#     db.session.commit()
-#     return success_response(new_task.serialize(), 201)
+@app.route("/api/<int:user_id>/internships/<int:internship_id>/tasks/<int:task_id>/", methods = ["POST"])
+def edit_task(user_id, internship_id, task_id):
+    """
+    Endpoint for editing a task for a user's internship
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("user not found", 404)
+    internship = Internship.query.filter_by(id=internship_id).first()
+    if internship is None:
+        return failure_response("internship not found", 404)
+    task = Task.query.filter_by(id=task_id).first()
+    if task is None:
+        return failure_response("task not found", 404)
+    body = json.loads(request.data)
+    completed = body.get("completed")
+    name = body.get("task name")
+    if completed is not None:
+        task.completed = completed
+    if name is not None:
+        task.task_name = name
+    db.session.commit()
+    return success_response(task.serialize(), 201)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

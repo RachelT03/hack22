@@ -14,12 +14,16 @@ class User(db.Model):
 
 
     def __init__(self, **kwargs):
-        """Initialises the User"""
+        """
+        Initialises the User
+        """
         self.name = kwargs.get("name")
 
 
     def serialize(self):
-        """Serializes the User object"""
+        """
+        Serializes the User object
+        """
         return {
             "id":self.id,
             "name":self.name,
@@ -41,20 +45,20 @@ class Internship(db.Model):
     __tablename__ = "internships"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     company = db.Column(db.String, nullable = False)
-    time_since_application = db.Column(db.String, nullable = False)
+    description = db.Column(db.String, nullable = False)
+    title = db.Column(db.String, nullable = False)
     application_status = db.Column(db.String, nullable = False)
     tasks = db.relationship("Task", cascade = "delete") 
-    additional_notes = db.Column(db.String, nullable = True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"),unique = True)
     
     def __init__(self, **kwargs):
-
-        """Initialises the Internship Object"""
-
+        """
+        Initialises the Internship Object
+        """
         self.company = kwargs.get("company")
-        self.time_since_application = kwargs.get("time_since_application")
+        self.description = kwargs.get("description")
+        self.title = kwargs.get("title")
         self.application_status = kwargs.get("application_status")
-        self.additional_notes = kwargs.get("additional_notes")
         self.user_id = kwargs.get("user_id")
 
     def serialize(self):
@@ -64,10 +68,10 @@ class Internship(db.Model):
         return {
             "id":self.id,
             "company":self.company,
-            "time_since_application":self.time_since_application,
-            "application_status":self.application_status,
+            "title": self.title,
+            "description": self.description,
+            "application status":self.application_status,
             "tasks":[a.simple_serialize() for a in self.tasks],
-            "additional_notes":self.additional_notes
         }
         
     def simple_serialize(self):
@@ -90,15 +94,17 @@ class Task(db.Model):
     intership_id = db.Column(db.Integer, db.ForeignKey("internships.id"), nullable = False)
     
     def __init__(self, **kwargs):
-        """Initialises the Task object"""
+        """
+        Initialises the Task object
+        """
         self.task_name = kwargs.get("task_name", "")
-        self.completed = kwargs.get("completed","")
+        self.completed = kwargs.get("completed", "")
         self.internship_id = kwargs.get("internship_id")
 
-    def serialize(self):
-        
-        """Serialises the Task Object"""
-
+    def serialize(self):  
+        """
+        Serialises the Task Object
+        """
         return{
             "id":self.id,
             "task_name":self.task_name,
