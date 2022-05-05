@@ -18,6 +18,7 @@ def get_user_by_session_token(session_token):
     """
     Returns a user object from the database given a session token
     """
+    #print(User.query.filter(User.session_token == session_token).first())
     return User.query.filter(User.session_token == session_token).first()
 
 

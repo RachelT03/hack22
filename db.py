@@ -100,7 +100,7 @@ class Internship(db.Model):
     title = db.Column(db.String, nullable = False)
     application_status = db.Column(db.String, nullable = False)
     tasks = db.relationship("Task", cascade = "delete") 
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"),unique = True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     
     def __init__(self, **kwargs):
         """
@@ -130,6 +130,8 @@ class Internship(db.Model):
         Simple Serialize a internship object with only name and status
         """
         return {
+            "id":self.id,
+            "title": self.title,
             "company":self.company,
             "status":self.application_status
         }

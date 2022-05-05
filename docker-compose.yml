@@ -1,0 +1,9 @@
+version: "3"
+services:    
+    pa6:        
+        image: danielthorne/pa6   
+        volumes:
+                - /home/danielfrancais592/cms.db:/usr/app/cms.db
+        env_file: .env
+        ports:                
+            - "5000:5000"

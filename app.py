@@ -36,21 +36,6 @@ def get_users():
     users = [u.serialize() for u in User.query.all()]
     return success_response({"users": users})
 
-# @app.route("/api/users/", methods = ["POST"])
-# def create_user():
-#     """
-#     Ednpoint for creating a user
-#     """
-#     body = json.loads(request.data)
-#     if body.get("name") is None:
-#         return failure_response("user can't be created", 400)
-#     new_user = User(
-#         name = body.get("name")
-#     )
-#     db.session.add(new_user)
-#     db.session.commit()
-#     return success_response(new_user.serialize(), 201)
-
 @app.route("/api/users/<int:user_id>/", methods = ["DELETE"])
 def delete_user(user_id):
     """
@@ -64,84 +49,101 @@ def delete_user(user_id):
     return success_response(user.serialize())
 
 
-@app.route("/api/<int:user_id>/internships/")
-def get_user_internships(user_id):
+@app.route("/api/internships/")
+def get_user_internships():
     """
     Endpoint for getting general information of all internships for a user
     """
-    user = User.query.filter_by(id=user_id).first()
+    was_successful, session_token = extract_token(request)
+    if not was_successful:
+       return session_token
+    user = users_dao.get_user_by_session_token(session_token)
     if user is None:
         return failure_response("user not found", 404)
+
     return success_response(user.simple_serialize())
 
-@app.route("/api/<int:user_id>/internships/<int:internship_id>/")
-def get_specific_internship(user_id, internship_id):
+@app.route("/api/internships/<int:internship_id>/")
+def get_specific_internship(internship_id):
     """"
     Endpoint for getting a specific internship with detailed information for a user
     """
-    user = User.query.filter_by(id=user_id).first()
+    was_successful, session_token = extract_token(request)
+    if not was_successful:
+       return session_token
+    user = users_dao.get_user_by_session_token(session_token)
     if user is None:
         return failure_response("user not found", 404)
+        
     internship = Internship.query.filter_by(id=internship_id).first()
     if internship is None:
         return failure_response("internship not found", 404)
     return success_response(internship.serialize())
 
-@app.route("/api/internships/<int:user_id>/", methods = ["POST"])
-def create_internship(user_id):
+@app.route("/api/internships/", methods = ["POST"])
+def create_internship():
     """
     Endpoint for creating an internship for a user
     """
-    user = User.query.filter_by(id=user_id).first()
+    was_successful, session_token = extract_token(request)
+    if not was_successful:
+       return session_token
+    user = users_dao.get_user_by_session_token(session_token)
     if user is None:
         return failure_response("user not found", 404)
     body = json.loads(request.data)
-    if body.get("company") is None or body.get("status") is None:
+    if body.get("company") is None or body.get("status") is None or body.get("title") is None or body.get("description") is None:
         return failure_response("please include necessary information to create internship", 400)
     company = body.get("company")
     status = body.get("status")
     title = body.get("title")
     description = body.get("description")
+
     new_internship = Internship(
         company = company, 
         title = title,
         description = description,
         application_status = status,
-        user_id = user_id
+        user_id = user.id
         )
-    user.internships.append(new_internship)
     db.session.add(new_internship)
     db.session.commit()
     return success_response(new_internship.serialize(), 201)
 
-@app.route("/api/<int:user_id>/internships/<int:internship_id>/", methods = ["DELETE"])
-def delete_internship(user_id, internship_id):
+@app.route("/api/internships/<int:internship_id>/", methods = ["DELETE"])
+def delete_internship(internship_id):
     """
     Endpoint for deleting an internship for a user
     """
-    user = User.query.filter_by(id=user_id).first()
+    was_successful, session_token = extract_token(request)
+    if not was_successful:
+       return session_token
+    user = users_dao.get_user_by_session_token(session_token)
 
     if user is None:
         return failure_response("user not found", 404)
-
+        
     internship = Internship.query.filter_by(id=internship_id).first()
     
     if internship is None:
         return failure_response("internship not found", 404)
-
-    user.internships.remove(internship)
     db.session.delete(internship)
     db.session.commit()
-    return success_response(internship.serialize()),201
+    return success_response(internship.serialize(),201)
 
-@app.route("/api/<int:user_id>/internships/<int:internship_id>/", methods = ["POST"])
-def edit_internship(user_id, internship_id):
+@app.route("/api/internships/<int:internship_id>/", methods = ["POST"])
+def edit_internship(internship_id):
     """
     Endpoint for editing a specific internship
     """
-    user = User.query.filter_by(id=user_id).first()
+    was_successful, session_token = extract_token(request)
+    if not was_successful:
+       return session_token
+    user = users_dao.get_user_by_session_token(session_token)
+
     if user is None:
         return failure_response("user not found", 404)
+
     internship = Internship.query.filter_by(id=internship_id).first()
     if internship is None:
         return failure_response("internship not found", 404)
@@ -242,7 +244,8 @@ def extract_token(request):
     """
     Helper function that extracts the token from the header of a request
     """
-    auth_header = request.headers.get("Authorization ")
+
+    auth_header = request.headers.get("Authorization")
     if auth_header is None:
         return False, json.dumps({"Missing authorization header"})
     
@@ -272,7 +275,6 @@ def register_account():
 
     if not was_successful:
         return failure_response("User already exists")
-
 
     return success_response(
         {
@@ -346,7 +348,7 @@ def secret_message():
     user = users_dao.get_user_by_session_token(session_token)
 
     #make sure the user exists and the session token is valid
-    if not user or not user.verify_session_toke(session_token):
+    if not user or not user.verify_session_token(session_token):
         return failure_response({"Invalid session token"})
 
     #return the secret message
@@ -354,17 +356,18 @@ def secret_message():
 
 @app.route("/logout/", methods=["POST"])
 def logout():
+    
     was_successful, session_token = extract_token(request)
 
     if not was_successful:
         return session_token
 
-    user = users_dao.get_user_by_session_token()
+    user = users_dao.get_user_by_session_token(session_token)
 
-    if not user or not users_dao.verify_session_token(session_token):
+    if not user or not user.verify_session_token(session_token):
         return failure_response("Invalid session token")
 
-    user.session_expiration = datetime.now()
+    user.session_expiration = datetime.datetime.now()
     db.session.commit()
 
     return success_response({
