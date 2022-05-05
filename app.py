@@ -7,6 +7,7 @@ import json
 import datetime
 
 import os
+import users_dao
 app = Flask(__name__)
 db_filename = "db_file.db"
 
@@ -35,20 +36,20 @@ def get_users():
     users = [u.serialize() for u in User.query.all()]
     return success_response({"users": users})
 
-@app.route("/api/users/", methods = ["POST"])
-def create_user():
-    """
-    Ednpoint for creating a user
-    """
-    body = json.loads(request.data)
-    if body.get("name") is None:
-        return failure_response("user can't be created", 400)
-    new_user = User(
-        name = body.get("name")
-    )
-    db.session.add(new_user)
-    db.session.commit()
-    return success_response(new_user.serialize(), 201)
+# @app.route("/api/users/", methods = ["POST"])
+# def create_user():
+#     """
+#     Ednpoint for creating a user
+#     """
+#     body = json.loads(request.data)
+#     if body.get("name") is None:
+#         return failure_response("user can't be created", 400)
+#     new_user = User(
+#         name = body.get("name")
+#     )
+#     db.session.add(new_user)
+#     db.session.commit()
+#     return success_response(new_user.serialize(), 201)
 
 @app.route("/api/users/<int:user_id>/", methods = ["DELETE"])
 def delete_user(user_id):
@@ -233,6 +234,143 @@ def edit_task(user_id, internship_id, task_id):
         task.task_name = name
     db.session.commit()
     return success_response(task.serialize(), 201)
+
+
+#AUTHENTICATION
+
+def extract_token(request):
+    """
+    Helper function that extracts the token from the header of a request
+    """
+    auth_header = request.headers.get("Authorization ")
+    if auth_header is None:
+        return False, json.dumps({"Missing authorization header"})
+    
+    #gets the token from auth header value
+    bearer_token = auth_header.replace("Bearer", "").strip()
+
+    #now that we have the token itself we can return 
+    return True, bearer_token
+
+
+@app.route("/register/", methods=["POST"])
+def register_account():
+    """
+    Endpoint for registering a new user
+    """
+    body = json.loads(request.data)
+
+    name = body.get("name")
+    email = body.get("email")
+    password = body.get("password")
+
+
+    if name is None or email is None or password is None:
+        return failure_response("Missing name or email or password")
+
+    was_successful, user = users_dao.create_user(name, email, password)
+
+    if not was_successful:
+        return failure_response("User already exists")
+
+
+    return success_response(
+        {
+            "session_token":user.session_token,
+            "session_expiration": str(user.session_expiration),
+            "update_token": user.update_token        }
+    )
+    
+@app.route("/login/", methods=["POST"])
+def login():
+    """
+    Endpoint for logging in a user
+    """
+    body = json.loads(request.data)
+    email = body.get("email")
+    password = body.get("password")
+
+    if (email is None) or (password is None): #normal failure error
+        return failure_response("Missing email or password", 400)
+
+    was_successful, user = users_dao.verify_credentials(email,password)
+    
+    if not was_successful: #authorisation error 
+        return failure_response("Incorrect username or password", 401)
+    
+    return success_response(
+        {
+            "session_token":user.session_token,
+            "session_expiration": str(user.session_expiration),
+            "update_token": user.update_token 
+        }
+    )
+@app.route("/session/", methods=["POST"])
+def update_session():
+    """
+    Endpoint for updating a user's session
+    """
+    was_successful, update_token = extract_token(request)
+    
+    if not was_successful:
+        return update_token
+    
+    try:
+        user = users_dao.renew_session(update_token)
+    except Exception as e:
+        return failure_response(f"Invalid update token: {str(e)}")
+    
+    return success_response(
+        {
+            "session_token":user.session_token,
+            "session_expiration": str(user.session_expiration),
+            "update_token": user.update_token 
+        }
+    )
+
+
+@app.route("/secret/", methods=["GET"])
+def secret_message():
+    """
+    Endpoint for verifying a session token and returning a secret message
+
+    In your project, you will use the same logic for any endpoint that needs 
+    authentication
+    """
+    was_successful, session_token = extract_token(request)
+
+    if not was_successful:
+       return session_token #it'll return a failure response
+
+    #similar to getting user by their ID, but instead now by their session token 
+    user = users_dao.get_user_by_session_token(session_token)
+
+    #make sure the user exists and the session token is valid
+    if not user or not user.verify_session_toke(session_token):
+        return failure_response({"Invalid session token"})
+
+    #return the secret message
+    return success_response({"message":"You have succesfully implemented the session"})
+
+@app.route("/logout/", methods=["POST"])
+def logout():
+    was_successful, session_token = extract_token(request)
+
+    if not was_successful:
+        return session_token
+
+    user = users_dao.get_user_by_session_token()
+
+    if not user or not users_dao.verify_session_token(session_token):
+        return failure_response("Invalid session token")
+
+    user.session_expiration = datetime.now()
+    db.session.commit()
+
+    return success_response({
+         "message": "You have successfully logged out!"
+    }
+    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
