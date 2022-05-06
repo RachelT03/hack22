@@ -122,7 +122,7 @@ class Internship(db.Model):
             "title": self.title,
             "description": self.description,
             "application status":self.application_status,
-            "tasks":[a.simple_serialize() for a in self.tasks],
+            "tasks":[a.serialize() for a in self.tasks],
         }
         
     def simple_serialize(self):
