@@ -1,9 +1,6 @@
 version: "3"
 services:    
-    pa6:        
-        image: danielthorne/pa6   
-        volumes:
-                - /home/danielfrancais592/cms.db:/usr/app/cms.db
-        env_file: .env
+   hackchal2022:        
+        image: danielthorne/hackchal2022 
         ports:                
             - "5000:5000"

@@ -1,29 +1,80 @@
 GET all users
-GET/users/
+GET/api/users/
 <HTTP STATUS CODE 200>
 {
-    "users":[
-        "id": 1,
-        "name": "sam",
-        "internship": [<SERIALIZED INTERNSHIP>]
+    "users": [
+        {
+            "id": 1,
+            "name": "upson",
+            "internships": [
+                {
+                    "id": 1,
+                    "title": "sde",
+                    "company": "google",
+                    "status": "applied"
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "name": "peepeepoopoo",
+            "internships": []
+        },
+        {
+            "id": 3,
+            "name": "duff",
+            "internships": [
+                {
+                    "id": 2,
+                    "title": "step intern",
+                    "company": "google",
+                    "status": "applied"
+                }
+            ]
+        }
     ]
 }
-CREATE a user
-POST/api/users/
+
+----------------------------------------------------------
+
+Register account
+POST/register/
 <HTTP STATUS CODE 201>
 
 REQUEST
 {
     "name": "Mustafa"
-    "username":"zeLionKing"
+    "email":"zeLionKing"
+    "password": "password"
 }
 
 RESPONSE
 {
-    "id":<ID>
-    "name": "Mustafa"
-    "internships": []
+    "session_token": "6da156c5d3a98a59513b8dee358aada3b7267db7",
+    "session_expiration": "2022-05-07 20:14:57.795677",
+    "update_token": "1167c1f4d5d99b55358a18e321c8b5b8242e7e41"
 }
+
+----------------------------------------------------------
+
+Login
+POST/login/
+<HTTP STATUS CODE 201>
+
+REQUEST
+{
+    "email": "duff@gmail.com",
+    "password": "duff123"
+}
+
+RESPONSE
+{
+    "session_token": "6da156c5d3a98a59513b8dee358aada3b7267db7",
+    "session_expiration": "2022-05-07 20:14:57.795677",
+    "update_token": "1167c1f4d5d99b55358a18e321c8b5b8242e7e41"
+}
+
+----------------------------------------------------------
 
 DELETE a user
 DELETE/api/users/{id}/
@@ -31,84 +82,121 @@ DELETE/api/users/{id}/
 
 RESPONSE 
 {
-    "id":<ID>
-    "name": "Mustafa"
-    "internships":<USER_INTERSHIPS>
-
+    "id": 2,
+    "name": "peepeepoopoo",
+    "internships": []
 }
 
-Get a user internship
-GET /api/users/{id}/
+----------------------------------------------------------
+
+Get all internships for one user
+GET /api/internships
 <HTTP STATUS CODE 200>
 
 RESPONSE
 {
-    "id":<ID>
-    "name": "Mustafa"
-    "internships":<USER_INTERSHIPS>
+    "internship": [
+        {
+            "id": 2,
+            "title": "step intern",
+            "company": "google",
+            "status": "applied"
+        }
+    ]
 }
 
+----------------------------------------------------------
 
-CREATE a specific internship
-POST/api/{user_id}/internships/{internship_id>}/
+Get one specific internship
+GET /api/internships/{internship_id}/
+<HTTP STATUS CODE 200>
+
+RESPONSE
+{
+    "id": 2,
+    "company": "google",
+    "title": "step intern",
+    "description": "for first and second year",
+    "application status": "applied",
+    "tasks": []
+}
+
+----------------------------------------------------------
+
+CREATE an internship
+POST/api/internships/
 <HTTP STATUS CODE 201>
 REQUEST
 {
-
-    "company" = "Petronas"
-    "application_status" = "applied"
-    "description": "nice company" 
-    "tasks" = []
+    "company": "google",
+    "status": "applied",
+    "description": "for first and second year",
+    "title": "step intern"
 }
 
 RESPONSE 
 {
-    "id" = <ID>
-    "description" = ""
-    "company" = "Petronas" 
-    "application_status" = "applied"
-    "tasks" = []
+    "id": 2,
+    "company": "google",
+    "title": "step intern",
+    "description": "for first and second year",
+    "application status": "applied",
+    "tasks": []
 }
 
+----------------------------------------------------------
+
 DELETE a specific internship
-DELETE/api/{user_id}/internships/{internship_id>}/
+DELETE/api/internships/{internship_id>}/
 <HTTP STATUS CODE 200>
 
 RESPONSE 
 {
-    id = <ID>
-    "company" = "Petronas" 
-    "application_status" = "applied"
-    "tasks" = []
+    "id": 2,
+    "company": "google",
+    "title": "step intern",
+    "description": "for first and second year",
+    "application status": "applied",
+    "tasks": []
 }
 
+----------------------------------------------------------
+
 EDIT a specific internship
-POST /api/{user_id}/internships/{internship_id>}/
+POST /api/internships/{internship_id>}/
 <HTTP STATUS CODE 200>
 
 REQUEST
 {
-    "status":
-    "description":
+    "id": 1,
+    "company": "google",
+    "title": "sde",
+    "description": "fun",
+    "application status": "accepted",
+    "tasks": []
 }
 
 RESPONSE
 {
-    "id": <ID>,
-    "company": "meta",
-    "application_status": <USER_INPUT>,
+    "status": "accepted"
 }
 
-GET all tasks
+----------------------------------------------------------
+
+GET all tasks of a user's internship
 GET/api/{user_id}/internships/{internship_id>}/tasks/
 <HTTP STATUS CODE 200>
 
 RESPONSE
-{
-    "id":<ID>,
-    "task_name":"get boba",
-    "completed":True
-}
+[
+    {
+        "id": 1,
+        "task_name": "email recruiter",
+        "completed": "False"
+    }
+]
+
+----------------------------------------------------------
 
 GET specific task
 GET/api/{user_id}/internship/{internship_id}/tasks/{task_id}/
@@ -116,10 +204,12 @@ GET/api/{user_id}/internship/{internship_id}/tasks/{task_id}/
 
 RESPONSE
 {
-    "id":<ID>,
-    "task_name":"get boba",
-    "completed":True
+    "id": 1,
+    "task_name": "email recruiter",
+    "completed": "False"
 }
+
+----------------------------------------------------------
 
 CREATE a task
 POST/api/{user_id}/internships/{internship_id>}/tasks/
@@ -127,15 +217,17 @@ POST/api/{user_id}/internships/{internship_id>}/tasks/
 
 REQUEST
 {
-    "task name" = "do backend hw"
+    "task name": "go to information session"
 }
 
 RESPONSE
 {
-    "id":<TASK_ID>,
-    "task_name":"do backend hw",
-    "completed":False
+    "id": 1,
+    "task_name": "go to information session",
+    "completed": "False"
 }
+
+----------------------------------------------------------
 
 EDIT specific task
 POST/api/{user_id}/internship/{internship_id}/tasks/{task_id}/
@@ -143,14 +235,12 @@ POST/api/{user_id}/internship/{internship_id}/tasks/{task_id}/
 
 REQUEST
 {
-    "task_name" = "download cheat sheet"
-    "completed" = "False"
+    "completed": "True"
 }
 
 RESPONSE
 {
-    "id":<TASK_ID>,
-    "task_name":"download cheat sheet",
+    "id": 1,
+    "task_name": "email recruiter",
     "completed": "True"
 }
-
